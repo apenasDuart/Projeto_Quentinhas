@@ -1,5 +1,6 @@
 package EstoqueQuentinha;
 
+import java.io.*;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -73,6 +74,9 @@ public class EstoqueGUI extends JFrame {
         btnAdicionar.addActionListener(e -> adicionarProduto());
         btnRemover.addActionListener(e -> removerProduto());
 
+        // Carregar estoque salvo
+        carregarProdutosDoArquivo();
+
         setVisible(true);
     }
 
@@ -115,6 +119,8 @@ public class EstoqueGUI extends JFrame {
 
             logs.add(new LogEntrada((qtd >= 0 ? "ENTRADA" : "SAÍDA"), nome, Math.abs(qtd), nomeUsuario));
 
+            salvarProdutosEmArquivo();
+
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(this, "Valor inválido.");
         }
@@ -131,6 +137,8 @@ public class EstoqueGUI extends JFrame {
         logs.add(new LogEntrada("REMOVIDO", p.getNome(), p.getQuantidade(), nomeUsuario));
         estoque.remove(row);
         tableModel.removeRow(row);
+
+        salvarProdutosEmArquivo();
     }
 
     private void mostrarLog() {
@@ -183,5 +191,30 @@ public class EstoqueGUI extends JFrame {
 
     private void gerenciarUsuarios() {
         JOptionPane.showMessageDialog(this, "Funcionalidade futura: gerenciamento de contas.");
+    }
+
+    private void salvarProdutosEmArquivo() {
+        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream("estoque.dat"))) {
+            out.writeObject(estoque);
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Erro ao salvar o estoque.");
+        }
+    }
+
+    private void carregarProdutosDoArquivo() {
+        File arquivo = new File("estoque.dat");
+        if (!arquivo.exists()) return;
+
+        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(arquivo))) {
+            estoque = (ArrayList<Produto>) in.readObject();
+            tableModel.setRowCount(0); // Limpa antes de adicionar
+            for (Produto p : estoque) {
+                tableModel.addRow(new Object[]{p.getNome(), p.getQuantidade()});
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Erro ao carregar o estoque.");
+        }
     }
 }
